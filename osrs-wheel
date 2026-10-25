@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# launches the task wheel as its own app window
+# wheel.html is the same file that gets published as the artifact, so it has no <!doctype>/<head>.
+# wrap it here so chrome renders it properly, then open it in app mode (no tabs, no address bar)
+
+set -euo pipefail
+
+src="$(dirname "$(readlink -f "$0")")/wheel.html"
+data="${XDG_DATA_HOME:-$HOME/.local/share}/osrs-wheel"
+mkdir -p "$data"
+
+{
+  printf '<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n'
+  printf '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n'
+  printf '<style>[hidden]{display:none!important} body{margin:0}</style>\n</head>\n<body>\n'
+  cat "$src"
+  printf '\n</body>\n</html>\n'
+} > "$data/index.html"
+
+# own profile so the window gets its own taskbar entry + keeps its task log separate from normal browsing
+exec google-chrome-stable \
+  --user-data-dir="$data/profile" \
+  --class=osrs-wheel \
+  --no-first-run --no-default-browser-check \
+  --window-size=1180,860 \
+  --app="file://$data/index.html" "$@"
